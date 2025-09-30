@@ -1,6 +1,5 @@
 import * as https from "request-promise-native"
 
-import { GaxiosResponse } from "gaxios"
 import { Credentials, OAuth2Client } from "google-auth-library"
 import { drive_v3, google } from "googleapis"
 
@@ -144,7 +143,7 @@ export class GoogleDriveAction extends Hub.OAuthActionV2 {
             tokenPayload.tokens,
           )
 
-          const paginatedDrives = await this.getDrives(drive, [], await drive.drives.list({pageSize: 50}))
+          const paginatedDrives = await this.getDrives(drive, [], (await drive.drives.list({pageSize: 50})).data)
           const driveSelections = paginatedDrives.filter((_drive) => (
             !(_drive.id === undefined) && !(_drive.name === undefined)))
             .map((folder) => ({name: folder.id!, label: folder.name!}))
@@ -181,18 +180,18 @@ export class GoogleDriveAction extends Hub.OAuthActionV2 {
 
             async function pagedFileList(
                 accumulatedFiles: drive_v3.Schema$File[],
-                response: GaxiosResponse<drive_v3.Schema$FileList>): Promise<drive_v3.Schema$File[]> {
-              const mergedFiles = accumulatedFiles.concat(response.data.files!)
+                response: drive_v3.Schema$FileList): Promise<drive_v3.Schema$File[]> {
+              const mergedFiles = accumulatedFiles.concat(response.files!)
 
               // When a `nextPageToken` exists, recursively call this function to get the next page.
-              if (response.data.nextPageToken) {
+              if (response.nextPageToken) {
                 const pageOptions = { ...options }
-                pageOptions.pageToken = response.data.nextPageToken
-                return pagedFileList(mergedFiles, await drive.files.list(pageOptions))
+                pageOptions.pageToken = response.nextPageToken
+                return pagedFileList(mergedFiles, (await drive.files.list(pageOptions)).data)
               }
               return mergedFiles
             }
-            const paginatedFiles = await pagedFileList([], await drive.files.list(options))
+            const paginatedFiles = await pagedFileList([], (await drive.files.list(options)).data)
             const folders = paginatedFiles.filter((folder) => (
                     !(folder.id === undefined) && !(folder.name === undefined)))
                 .map((folder) => ({name: folder.id!, label: folder.name!}))
@@ -403,15 +402,15 @@ export class GoogleDriveAction extends Hub.OAuthActionV2 {
 
    async getDrives(drive: Drive,
                    accumulatedFolders: drive_v3.Schema$Drive[],
-                   response: GaxiosResponse<drive_v3.Schema$DriveList>): Promise<drive_v3.Schema$Drive[]> {
-     const driveList = accumulatedFolders.concat(response.data.drives!)
+                   response: drive_v3.Schema$DriveList): Promise<drive_v3.Schema$Drive[]> {
+     const driveList = accumulatedFolders.concat(response.drives!)
 
-     if (response.data.nextPageToken) {
+     if (response.nextPageToken) {
       const pageOptions = {
         pageSize: 50,
-        pageToken: response.data.nextPageToken,
+        pageToken: response.nextPageToken,
       }
-      return this.getDrives(drive, driveList, await drive.drives.list(pageOptions))
+      return this.getDrives(drive, driveList, (await drive.drives.list(pageOptions)).data)
      }
 
      return driveList
