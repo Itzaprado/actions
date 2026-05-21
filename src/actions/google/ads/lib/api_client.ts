@@ -82,7 +82,7 @@ export class GoogleAdsApiClient {
       }
 
       try {
-        return this.apiCall(method, path, body)
+        return await this.apiCall(method, path, body)
       } catch (error) {
         this.handleEuPoliticalError(error)
         throw error
@@ -114,7 +114,7 @@ export class GoogleAdsApiClient {
       }
 
       try {
-        return this.apiCall(method, path, body)
+        return await this.apiCall(method, path, body)
       } catch (error) {
         this.handleEuPoliticalError(error)
         throw error
@@ -181,6 +181,7 @@ export class GoogleAdsApiClient {
                         "See: https://developers.google.com/google-ads/api/docs/api-policy/eu-par"
         this.log("error", `EU Political Advertising Error: ${message}`)
         error.message = message
+        error.name = "EU Political Advertising Error"
       }
     }
 }
